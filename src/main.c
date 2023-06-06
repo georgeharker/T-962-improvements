@@ -499,7 +499,7 @@ static int32_t Main_Work(void) {
 			LCD_disp_str((uint8_t*)buf, len, LCD_ALIGN_RIGHT(len), y, FONT6X6);
 		}
 
-		len = snprintf(buf, sizeof(buf), "ACT %3.1f`", Sensor_GetTemp(TC_AVERAGE));
+		len = snprintf(buf, sizeof(buf), "ACT %3.1f` F %3d", Sensor_GetTemp(TC_AVERAGE), Reflow_GetFan());
 		LCD_disp_str((uint8_t*)buf, len, 0, y, FONT6X6);
 
 		y = 34;
