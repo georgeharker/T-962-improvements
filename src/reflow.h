@@ -26,6 +26,7 @@ int Reflow_IsPreheating(void);
 uint16_t Reflow_GetSetpoint(void);
 void Reflow_SetBakeTimer(int seconds);
 int Reflow_GetTimeLeft(void);
+int Reflow_GetFan(void);
 int32_t Reflow_Run(uint32_t thetime, float meastemp, uint8_t* pheat, uint8_t* pfan, int32_t manualsetpoint);
 void Reflow_ToggleStandbyLogging(void);
 

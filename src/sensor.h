@@ -8,6 +8,7 @@ typedef enum eTempSensor {
 	TC_RIGHT,
 	TC_EXTRA1,
 	TC_EXTRA2,
+    TC_SPREAD,
 	TC_NUM_ITEMS
 } TempSensor_t;
 

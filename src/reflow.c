@@ -39,10 +39,18 @@
 
 #define TICKS_PER_SECOND (1000 / PID_TIMEBASE)
 
+#define MAX_SPREAD_TEMP 10.0f
+
+//#define FANPID
+
 static PidType PID;
+#ifdef FANPID
+static PidType PID2;
+#endif
 
 static uint16_t intsetpoint;
 static int bake_timer = 0;
+static int lastfan = 0;
 
 static float avgtemp;
 
@@ -163,6 +171,16 @@ void Reflow_Init(void) {
 	//PID_SetTunings(&PID, 10, 0.0066, 0);
 	//PID_SetTunings(&PID, 10, 0.2, 0);
 	//PID_SetTunings(&PID, 10, 0.020, 1.0); // Experimental
+    
+#ifdef FANPID
+    uint8_t minfan = NV_GetConfig(REFLOW_MIN_FAN_SPEED);
+    PID_init(&PID2, 0, 0, 0, PID_Direction_Reverse); // Can't supply tuning to PID_Init when not using the default timebase
+	PID_SetSampleTime(&PID2, PID_TIMEBASE);
+    float max_spread_by_minfan = minfan / (float) MAX_SPREAD_TEMP;
+	PID_SetTunings(&PID2, max_spread_by_minfan, 
+                   0.02 * max_spread_by_minfan,
+                   2.0 * max_spread_by_minfan); // Adjusted values to compensate for the incorrect timebase earlier
+#endif
 
 	Reflow_LoadCustomProfiles();
 
@@ -176,6 +194,16 @@ void Reflow_Init(void) {
 	PID_SetMode(&PID, PID_Mode_Manual);
 	PID.myOutput = 248; // Between fan and heat
 	PID_SetMode(&PID, PID_Mode_Automatic);
+
+#ifdef FANPID
+    PID2.mySetpoint = 0.0f;     // No discrepancy between temp sensors
+	PID_SetOutputLimits(&PID2, 0, minfan);
+	PID_SetMode(&PID2, PID_Mode_Manual);
+	PID2.myOutput = minfan;     // minimum fan value to start
+	PID_SetMode(&PID2, PID_Mode_Automatic);
+#endif
+
+
 	RTC_Zero();
 
 	// Start work
@@ -233,6 +261,10 @@ int Reflow_GetTimeLeft(void) {
 		return -1;
 	}
 	return (bake_timer - numticks) / TICKS_PER_SECOND;
+}
+
+int Reflow_GetFan(void) {
+	return lastfan;
 }
 
 // returns -1 if the reflow process is done.
@@ -295,9 +327,24 @@ int32_t Reflow_Run(uint32_t thetime, float meastemp, uint8_t* pheat, uint8_t* pf
 		// When heating like crazy make sure we can reach our setpoint
 		// if(*pheat>192) { *pfan=2; } else { *pfan=2; }
 
-		// Run at a low fixed speed during heating for now
-		*pfan = NV_GetConfig(REFLOW_MIN_FAN_SPEED);
+#ifdef FANPID
+        if (Sensor_IsValid(TC_SPREAD)) {
+		    // Run at a speed proportional to discrepancy in temp
+            float tempspread = Sensor_GetTemp(TC_SPREAD);
+
+            PID2.myInput = tempspread;
+	        PID_Compute(&PID2);
+            *pfan = PID2.myOutput;
+        } else {
+#endif
+		    // Run at a low fixed speed during heating for now
+		    *pfan = NV_GetConfig(REFLOW_MIN_FAN_SPEED);
+#ifdef FANPID
+        }
+#endif
 	}
+    lastfan = *pfan;
+
 	return retval;
 }
 

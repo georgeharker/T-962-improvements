@@ -10,6 +10,14 @@
 
 #include "sensor.h"
 
+#ifndef _MIN
+#define _MIN(X,Y) ((X) < (Y) ? (X) : (Y))
+#endif
+
+#ifndef _MAX
+#define _MAX(X,Y) ((X) > (Y) ? (X) : (Y))
+#endif
+
 /*
 * Normally the control input is the average of the first two TCs.
 * By defining this any TC that has a readout 5C (or more) higher
@@ -31,6 +39,7 @@ static uint8_t cjsensorpresent = 0;
 
 // The feedback temperature
 static float avgtemp;
+static float tempspread = -1;
 static float coldjunction;
 
 void Sensor_ValidateNV(void) {
@@ -100,10 +109,32 @@ void Sensor_DoConversion(void) {
 
 	// Assume no CJ sensor
 	cjsensorpresent = 0;
-	if (tcpresent[0] && tcpresent[1]) {
+    if (tcpresent[0] && tcpresent[1] &&
+	    tcpresent[2] && tcpresent[3]) {
 		// Adjust values with calibration settings
-		float t0 = tctemp[0] * adcgainadj[0]  + adcoffsetadj[0];
-		float t1 = tctemp[1] * adcgainadj[1]  + adcoffsetadj[1];
+		float t0 = tctemp[0] * adcgainadj[0] + adcoffsetadj[0];
+		float t1 = tctemp[1] * adcgainadj[0] + adcoffsetadj[0];
+
+		// Adjust values with calibration settings
+		float t2 = tctemp[2] * adcgainadj[1] + adcoffsetadj[1];
+		float t3 = tctemp[3] * adcgainadj[1] + adcoffsetadj[1];
+		avgtemp = (t0 + t1 + t2 + t3) / 4.0f;
+
+		temperature[0] = t0;
+		temperature[1] = t1;
+		temperature[2] = t2;
+		temperature[3] = t3;
+		
+        tempvalid |= 0x0F;
+		
+        coldjunction = (tccj[0] + tccj[1] + tccj[2] + tccj[3]) / 4.0f;
+		cjsensorpresent = 1;
+
+        tempspread = _MAX(_MAX(t0, t1), _MAX(t2, t3)) - _MIN(_MIN(t0, t1), _MIN(t2, t3));
+	} else if (tcpresent[0] && tcpresent[1]) {
+		// Adjust values with calibration settings
+		float t0 = tctemp[0] * adcgainadj[0] + adcoffsetadj[0];
+		float t1 = tctemp[1] * adcgainadj[1] + adcoffsetadj[1];
 		avgtemp = (t0 + t1) / 2.0f;
 		temperature[0] = t0;
 		temperature[1] = t1;
@@ -175,6 +206,8 @@ float Sensor_GetTemp(TempSensor_t sensor) {
 		return coldjunction;
 	} else if(sensor == TC_AVERAGE) {
 		return avgtemp;
+    } else if(sensor == TC_SPREAD) {
+		return tempspread;
 	} else if(sensor < TC_NUM_ITEMS) {
 		return temperature[sensor - TC_LEFT];
 	} else {
@@ -187,6 +220,8 @@ uint8_t Sensor_IsValid(TempSensor_t sensor) {
 		return cjsensorpresent;
 	} else if(sensor == TC_AVERAGE) {
 		return 1;
+    } else if(sensor == TC_SPREAD) {
+		return tempspread > -1;
 	} else if(sensor >= TC_NUM_ITEMS) {
 		return 0;
 	}

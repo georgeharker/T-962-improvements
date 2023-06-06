@@ -26,10 +26,10 @@
 static setupMenuStruct setupmenu[] = {
 	{"Min fan speed    %4.0f", REFLOW_MIN_FAN_SPEED, 0, 254, 0, 1.0f},
 	{"Cycle done beep %4.1fs", REFLOW_BEEP_DONE_LEN, 0, 254, 0, 0.1f},
-	{"Left TC gain     %1.2f", TC_LEFT_GAIN, 10, 190, 0, 0.01f},
-	{"Left TC offset  %+1.2f", TC_LEFT_OFFSET, 0, 200, -100, 0.25f},
-	{"Right TC gain    %1.2f", TC_RIGHT_GAIN, 10, 190, 0, 0.01f},
-	{"Right TC offset %+1.2f", TC_RIGHT_OFFSET, 0, 200, -100, 0.25f},
+	{"Bot TC gain     %1.2f", TC_LEFT_GAIN, 10, 190, 0, 0.01f},
+	{"Bot TC offset  %+1.2f", TC_LEFT_OFFSET, 0, 200, -100, 0.25f},
+	{"Top TC gain    %1.2f", TC_RIGHT_GAIN, 10, 190, 0, 0.01f},
+	{"Top TC offset %+1.2f", TC_RIGHT_OFFSET, 0, 200, -100, 0.25f},
 };
 #define NUM_SETUP_ITEMS (sizeof(setupmenu) / sizeof(setupmenu[0]))
 
